@@ -16,8 +16,8 @@
 
 [![Ascend](https://img.shields.io/badge/Inference-Ascend--NPU-red)](https://www.hiascend.com/)
 [![Diffusers](https://img.shields.io/badge/Inference-Diffusers-blueviolet)](https://github.com/huggingface/diffusers)
-[![vLLM-Omni](https://img.shields.io/badge/Backend-vLLM--Omni-orange)](https://github.com/vllm-project/vllm-omni)
-[![SGLang Diffusion](https://img.shields.io/badge/Backend-SGLang--Diffusion-yellow)](https://github.com/sgl-project/sglang)
+[![vLLM-Omni](https://img.shields.io/badge/Backend-vLLM--Omni-orange)](https://github.com/vllm-project/vllm-omni/pull/1604)
+[![SGLang Diffusion](https://img.shields.io/badge/Backend-SGLang--Diffusion-yellow)](https://github.com/sgl-project/sglang/pull/19782)
 
 
 
