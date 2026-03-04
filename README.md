@@ -144,6 +144,7 @@ Helios uses an autoregressive approach that generates **33 frames per chunk**. F
 | 720        | 726 (33×22)     | ~30s | ~45s |
 | 240        | 264 (33×8)      | ~11s | ~16s |
 | 129        | 132 (33×4)      | ~5.5s | ~8s |
+| 81         | 99  (33×3)      | ~4s | ~6s |
 
 ### Run the model
 

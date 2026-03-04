@@ -79,6 +79,7 @@ def parse_args():
     parser.add_argument("--height", type=int, default=384)
     parser.add_argument("--width", type=int, default=640)
     parser.add_argument("--num_frames", type=int, default=99)
+    parser.add_argument("--fps", type=int, default=24)
     parser.add_argument("--num_inference_steps", type=int, default=50)
     parser.add_argument("--guidance_scale", type=float, default=5.0)
     # cfg zero
