@@ -11,6 +11,7 @@
 <!-- [![arXiv](https://img.shields.io/badge/arXiv-2501.xxxxx-b31b1b.svg?logo=arxiv)](https://arxiv.org/abs/) -->
 [![arXiv](https://img.shields.io/badge/Technical--Report-2501.xxxxx-b31b1b.svg?logo=arxiv)](https://github.com/PKU-YuanGroup/Helios-Page/blob/main/helios_technical_report.pdf)
 [![Project Page](https://img.shields.io/badge/Project-Website-2ea44f)](https://pku-yuangroup.github.io/Helios-Page)
+[![hf_space](https://img.shields.io/badge/🤗-Gradio-00b4d8.svg)](https://huggingface.co/spaces/multimodalart/Helios-Distilled/)
 [![HuggingFace](https://img.shields.io/badge/🤗-HuggingFace-blue)](https://huggingface.co/collections/BestWishYsh/helios)
 [![ModelScope](https://img.shields.io/badge/🤖-ModelScope-purple)](https://modelscope.cn/collections/BestWishYSH/Helios)
 
