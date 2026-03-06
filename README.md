@@ -58,7 +58,7 @@ or you can click <a href="https://github.com/PKU-YuanGroup/Helios-Page/blob/main
 
 ## 📣 Latest News!!
 
-* `[2026.03.06]` 🚀 [Cache-DiT](https://github.com/vipshop/cache-dit/pull/834) now supports Helios, achieving up to 1.8x acceleration! Check it out at Cache-DiT. Special thanks to the Cache-DiT Team for their amazing work.
+* `[2026.03.06]` 🚀 [Cache-DiT](https://github.com/vipshop/cache-dit/pull/834) now supports Helios, it offers Fully Cache Acceleration and Parallelism support for Helios! Special thanks to the Cache-DiT Team for their amazing work.
 * `[2026.03.06]` 🚀 We fix the Parallel Inference logits for Helios, and provide an example [here](#-parallel-inference-on-multiple-gpus). Thanks [Cache-DiT Team](https://github.com/vipshop/cache-dit/pull/836). 
 * `[2026.03.06]` 👋 We official release the [Gradio Demo](https://huggingface.co/spaces/BestWishYsh/Helios-14B-RealTime), welcome to try it.
 * `[2026.03.05]` 👋 We are excited to announce the release of the Helios [technical report](https://arxiv.org/abs/2603.04379) on arXiv. We welcome discussions and feedback!
