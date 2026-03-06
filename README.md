@@ -58,7 +58,8 @@ or you can click <a href="https://github.com/PKU-YuanGroup/Helios-Page/blob/main
 
 ## 📣 Latest News!!
 
-* `[2026.03.06]` 🚀 We fix the parallel inference code for Helios, and provide an example [here](#-parallel-inference-on-multiple-gpus). Thanks [Cache-DiT Team](https://github.com/vipshop/cache-dit/pull/836). 
+* `[2026.03.06]` 🚀 [Cache-DiT](https://github.com/vipshop/cache-dit/pull/834) now supports Helios, achieving up to 1.8x acceleration! Check it out at Cache-DiT. Special thanks to the Cache-DiT Team for their amazing work.
+* `[2026.03.06]` 🚀 We fix the Parallel Inference logits for Helios, and provide an example [here](#-parallel-inference-on-multiple-gpus). Thanks [Cache-DiT Team](https://github.com/vipshop/cache-dit/pull/836). 
 * `[2026.03.06]` 👋 We official release the [Gradio Demo](https://huggingface.co/spaces/BestWishYsh/Helios-14B-RealTime), welcome to try it.
 * `[2026.03.05]` 👋 We are excited to announce the release of the Helios [technical report](https://arxiv.org/abs/2603.04379) on arXiv. We welcome discussions and feedback!
 * `[2026.03.04]` 🚀 Day-0 support for [Ascend-NPU](https://www.hiascend.com)，with sincere gratitude to the Ascend Team for their support.
@@ -73,10 +74,10 @@ or you can click <a href="https://github.com/PKU-YuanGroup/Helios-Page/blob/main
 If your work has improved **Helios** and you would like more people to see it, please inform us.
 
 * [Ascend-NPU](https://www.hiascend.com/): Developed by Huawei, this hardware is designed for efficient AI model training and inference, boosting performance in tasks like computer vision, natural language processing, and autonomous driving.
-* [Diffusers](https://github.com/huggingface/diffusers): A popular library designed for working with diffusion models and other generative models in deep learning. It supports easy integration and manipulation of a wide range of generative models.
-* [vLLM-Omni](https://github.com/vllm-project/vllm-omni): A fully disaggregated serving system for any-to-any models. vLLM-Omni breaks complex architectures into a stage-based graph, using a decoupled backend to maximize resource efficiency and throughput.
-* [SGLang-Diffusion](https://github.com/sgl-project/sglang): An inference framework for accelerated image and video generation using diffusion models. It provides an end-to-end unified pipeline with optimized kernels and an efficient scheduler loop.
-
+* [Diffusers](https://github.com/huggingface/diffusers/pull/13208): A popular library designed for working with diffusion models and other generative models in deep learning. It supports easy integration and manipulation of a wide range of generative models.
+* [vLLM-Omni](https://github.com/vllm-project/vllm-omni/pull/1604): A fully disaggregated serving system for any-to-any models. vLLM-Omni breaks complex architectures into a stage-based graph, using a decoupled backend to maximize resource efficiency and throughput.
+* [SGLang-Diffusion](https://github.com/sgl-project/sglang/pull/19782): An inference framework for accelerated image and video generation using diffusion models. It provides an end-to-end unified pipeline with optimized kernels and an efficient scheduler loop.
+* [Cache-DiT](https://github.com/vipshop/cache-dit/pull/834): A PyTorch-native and Flexible Inference Engine with Hybrid Cache Acceleration and Parallelism for DiTs. It built on top of the Diffusers library and now supports nearly ALL DiTs from Diffusers.
 
 ## ⚙️ Requirements and Installation
 
