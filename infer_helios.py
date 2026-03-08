@@ -7,6 +7,7 @@ os.environ["HF_PARALLEL_LOADING_WORKERS"] = "8"
 
 import argparse
 import time
+from datetime import datetime
 
 import pandas as pd
 import torch
@@ -38,11 +39,11 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Generate video with model")
 
     # === Model paths ===
-    parser.add_argument("--base_model_path", type=str, default="BestWishYsh/Helios-Base")
+    parser.add_argument("--base_model_path", type=str, default="./models/Helios-Base")
     parser.add_argument(
         "--transformer_path",
         type=str,
-        default="BestWishYsh/Helios-Base",
+        default=None,
     )
     parser.add_argument(
         "--lora_path",
@@ -171,6 +172,13 @@ def parse_args():
 def main():
     args = parse_args()
 
+    # Generate timestamp for output folder and filenames
+    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+
+    # Set default output folder if not specified
+    if args.output_folder == "./output_helios":
+        args.output_folder = f"./outputs/outputs_{timestamp}"
+
     assert not (args.enable_low_vram_mode and args.enable_compile), (
         "enable_low_vram_mode and enable_compile cannot be used together."
     )
@@ -235,7 +243,7 @@ def main():
             prompt = args.prompt
 
     transformer = HeliosTransformer3DModel.from_pretrained(
-        args.transformer_path,
+        args.transformer_path if args.transformer_path is not None else args.base_model_path,
         subfolder="transformer",
         torch_dtype=args.weight_dtype,
     )
@@ -375,7 +383,7 @@ def main():
                     [f for f in os.listdir(args.output_folder) if os.path.isfile(os.path.join(args.output_folder, f))]
                 )
                 output_path = os.path.join(
-                    args.output_folder, f"{file_count:04d}_{args.sample_type}_{int(time.time())}.mp4"
+                    args.output_folder, f"{file_count:04d}_{args.sample_type}_{timestamp}.mp4"
                 )
                 export_to_video(output, output_path, fps=24)
     elif args.prompt_txt_path is not None:
@@ -595,7 +603,7 @@ def main():
                 [f for f in os.listdir(args.output_folder) if os.path.isfile(os.path.join(args.output_folder, f))]
             )
             output_path = os.path.join(
-                args.output_folder, f"{file_count:04d}_{args.sample_type}_{int(time.time())}.mp4"
+                args.output_folder, f"{file_count:04d}_{args.sample_type}_{timestamp}.mp4"
             )
             export_to_video(output, output_path, fps=24)
 

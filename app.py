@@ -1,4 +1,6 @@
-import tempfile
+import os
+from datetime import datetime
+from pathlib import Path
 import time
 
 import gradio as gr
@@ -10,9 +12,13 @@ from diffusers.utils import export_to_video, load_image, load_video
 
 
 # ---------------------------------------------------------------------------
-# Pre-load model
+# 直接加载模型到GPU（48GB显存模式）
 # ---------------------------------------------------------------------------
-MODEL_ID = "BestWishYsh/Helios-Distilled"
+MODEL_ID = "./models/Helios-Distilled"
+
+print("=" * 60)
+print("正在加载 Helios 模型到 GPU...")
+print("=" * 60)
 
 vae = AutoencoderKLWan.from_pretrained(MODEL_ID, subfolder="vae", torch_dtype=torch.float32)
 scheduler = HeliosDMDScheduler.from_pretrained(MODEL_ID, subfolder="scheduler")
@@ -20,26 +26,22 @@ pipe = HeliosPyramidPipeline.from_pretrained(
     MODEL_ID, vae=vae, scheduler=scheduler, torch_dtype=torch.bfloat16, is_distilled=True
 )
 
+print("正在将模型移动到 GPU...")
 pipe.to("cuda")
+
 try:
     pipe.transformer.set_attention_backend("_flash_3_hub")
+    print("✓ Flash Attention 3 已启用")
 except Exception:
-    pipe.transformer.set_attention_backend("flash_hub")
+    try:
+        pipe.transformer.set_attention_backend("flash_hub")
+        print("✓ Flash Attention 已启用")
+    except Exception:
+        print("⚠ Flash Attention 不可用，使用默认注意力机制")
 
-# @spaces.GPU(duration=1500)
-# def compile_transformer():
-#     with spaces.aoti_capture(pipe.transformer) as call:
-#         pipe("arbitrary example prompt")
-
-#     exported = torch.export.export(
-#         pipe.transformer,
-#         args=call.args,
-#         kwargs=call.kwargs,
-#     )
-#     return spaces.aoti_compile(exported)
-
-# compiled_transformer = compile_transformer()
-# spaces.aoti_apply(compiled_transformer, pipe.transformer)
+print("=" * 60)
+print("✅ 模型已加载到 GPU，准备就绪")
+print("=" * 60)
 
 
 # ---------------------------------------------------------------------------
@@ -60,7 +62,7 @@ def generate_video(
     progress=gr.Progress(track_tqdm=True),
 ):
     if not prompt:
-        raise gr.Error("Please provide a prompt.")
+        raise gr.Error("请提供提示词")
 
     generator = torch.Generator(device="cuda").manual_seed(int(seed))
 
@@ -80,115 +82,165 @@ def generate_video(
         "is_amplify_first_chunk": is_amplify_first_chunk,
     }
 
-    if mode == "Image-to-Video" and image_input is not None:
+    if mode == "图片生成视频" and image_input is not None:
         img = load_image(image_input).resize((int(width), int(height)))
         kwargs["image"] = img
-    elif mode == "Video-to-Video" and video_input is not None:
+    elif mode == "视频生成视频" and video_input is not None:
         kwargs["video"] = load_video(video_input)
 
     t0 = time.time()
     output = pipe(**kwargs).frames[0]
-    elapsed = time.time() - t0
+    elapsed = time.time()- t0
 
-    tmp = tempfile.NamedTemporaryFile(suffix=".mp4", delete=False)
-    export_to_video(output, tmp.name, fps=24)
-    info = f"Generated in {elapsed:.1f}s · {num_frames} frames · {height}×{width}"
-    return tmp.name, info
+    # 保存到 outputs 目录，文件名带时间戳
+    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+    output_dir = Path("./outputs")
+    output_dir.mkdir(exist_ok=True)
+    output_path = output_dir / f"outputs_{timestamp}.mp4"
 
+    export_to_video(output, str(output_path), fps=24)
+    info = f"生成耗时 {elapsed:.1f}秒 · {num_frames} 帧 · {height}×{width}"
+    return str(output_path), info
 
 # ---------------------------------------------------------------------------
 # UI Setup
 # ---------------------------------------------------------------------------
 def update_conditional_visibility(mode):
-    if mode == "Image-to-Video":
+    if mode == "图片生成视频":
         return gr.update(visible=True), gr.update(visible=False)
-    elif mode == "Video-to-Video":
+    elif mode == "视频生成视频":
         return gr.update(visible=False), gr.update(visible=True)
     else:
         return gr.update(visible=False), gr.update(visible=False)
 
 
 CSS = """
-#header { text-align: center; margin-bottom: 1.5em; }
-#header h1 { font-size: 2.2em; margin-bottom: 0.2em; }
-.logo { max-height: 100px; margin: 0 auto 10px auto; display: block; }
-.link-buttons { display: flex; justify-content: center; gap: 15px; margin-top: 10px; }
-.link-buttons a {
-    background-color: #2b3137;
-    color: #ffffff !important;
-    padding: 8px 20px;
-    border-radius: 6px;
-    text-decoration: none;
-    font-weight: 600;
-    font-size: 1em;
-    transition: all 0.2s ease-in-out;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+/* 全局样式 - 适配桌面端浏览器 */
+body {
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
 }
-.link-buttons a:hover { background-color: #4a535c; transform: translateY(-1px); }
-.contain { max-width: 1350px; margin: 0 auto !important; }
+
+/* Gradio 容器 - 宽度90%，左右各留5% */
+.gradio-container {
+    max-width: 90% !important;
+    width: 90% !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+}
+
+/* 移除 Gradio 默认的最大宽度限制 */
+.contain {
+    max-width: none !important;
+}
+
+/* 标题横幅 - 全宽 */
+#header-banner {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    text-align: center;
+    padding: 40px 20px;
+    margin: -20px -20px 30px -20px;
+    border-radius: 0;
+    width: calc(100% + 40px);
+    margin-left: -20px;
+    margin-right: -20px;
+}
+
+#header-banner h1 {
+    color: white;
+    font-size: 2.8em;
+    margin: 0 0 20px 0;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    font-weight: 600;
+}
+
+#header-banner .subtitle {
+    color: white;
+    font-size: 1.2em;
+    line-height: 1.8;
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+    margin: 10px 0;
+}
+
+/* 主内容区域 */
+.main-content {
+    padding: 30px 0;
+    width: 100%;
+}
+
+/* 确保所有行和列占满宽度 */
+.gradio-row {
+    width: 100% !important;
+    gap: 30px;
+}
+
+.gradio-column {
+    min-width: 0 !important;
+}
+
+/* 输入组件样式优化 */
+.gradio-textbox, .gradio-number, .gradio-slider, .gradio-radio, .gradio-checkbox {
+    width: 100% !important;
+}
+
+/* 按钮样式 */
+.gradio-button {
+    width: 100% !important;
+    padding: 15px !important;
+    font-size: 1.1em !important;
+}
+
+/* 视频输出区域 */
+.gradio-video {
+    width: 100% !important;
+}
 """
 
-with gr.Blocks(title="Helios Video Generation") as demo:
+with gr.Blocks(title="Helios 视频生成") as demo:
     gr.HTML(
         """
-        <div style='display: flex; align-items: center; justify-content: center; width: 100%;'>
-            <img src="https://github.com/PKU-YuanGroup/Helios-Page/blob/main/figures/logo_white.png?raw=true" style='width: 400px; height: auto;' />
-        </div>
-        <div id="header">
-            <h1>🎬 Helios 14B Distilled: Real Real-Time Long Video Generation Model</h1>
-            <p style="font-size: 1.1em; color: #666; margin-top: 0.5em; margin-bottom: 1em;">
-                If you like our project, please give us a star ⭐ on GitHub for the latest update.
-            </p>
-            <div class="link-buttons">
-                <a href="https://github.com/PKU-YuanGroup/Helios" target="_blank">💻 Code</a>
-                <a href="https://pku-yuangroup.github.io/Helios-Page" target="_blank">📄 Page</a>
-                <a href="https://www.youtube.com/watch?v=vd_AgHtOUFQ" target="_blank">🎥 Main Feature</a>
-                <a href="https://www.youtube.com/watch?v=1GeIU2Dn7UY" target="_blank">⚡ Inference Speed</a>
+        <div id="header-banner">
+            <h1>🎬 Helios 长视频生成系统</h1>
+            <div class="subtitle">
+                webUI二次开发 by 科哥 | 微信：312088415 公众号：科哥玩AI<br>
+                承诺永远开源使用 但是需要保留本人版权信息！
             </div>
         </div>
         """
     )
 
-    with gr.Row():
+    with gr.Row(elem_classes="main-content"):
         with gr.Column(scale=1):
             mode = gr.Radio(
-                choices=["Text-to-Video", "Image-to-Video", "Video-to-Video"],
-                value="Text-to-Video",
-                label="Generation Mode",
+                choices=["文本生成视频", "图片生成视频", "视频生成视频"],
+                value="文本生成视频",
+                label="生成模式",
             )
-            image_input = gr.Image(label="Image (for I2V)", type="filepath", visible=False)
-            video_input = gr.Video(label="Video (for V2V)", visible=False)
+            image_input = gr.Image(label="输入图片（图片生成视频模式）", type="filepath", visible=False)
+            video_input = gr.Video(label="输入视频（视频生成视频模式）", visible=False)
             prompt = gr.Textbox(
-                label="Prompt",
+                label="提示词",
                 lines=4,
-                value=(
-                    "A vibrant tropical fish swimming gracefully among colorful coral reefs in "
-                    "a clear, turquoise ocean. The fish has bright blue and yellow scales with a "
-                    "small, distinctive orange spot on its side, its fins moving fluidly. The coral "
-                    "reefs are alive with a variety of marine life, including small schools of "
-                    "colorful fish and sea turtles gliding by. The water is crystal clear, allowing "
-                    "for a view of the sandy ocean floor below. The reef itself is adorned with a mix "
-                    "of hard and soft corals in shades of red, orange, and green. The photo captures "
-                    "the fish from a slightly elevated angle, emphasizing its lively movements and the "
-                    "vivid colors of its surroundings. A close-up shot with dynamic movement."
-                ),
+                placeholder="请输入视频描述...",
+                value="一条色彩鲜艳的热带鱼在清澈的海洋中优雅地游动，周围是五颜六色的珊瑚礁。",
             )
-            with gr.Accordion("Advanced Settings", open=False):
+            with gr.Accordion("高级设置", open=False):
                 with gr.Row():
-                    height = gr.Number(value=384, label="Height", precision=0, interactive=False)
-                    width = gr.Number(value=640, label="Width", precision=0, interactive=False)
+                    height = gr.Number(value=384, label="高度", precision=0, interactive=False)
+                    width = gr.Number(value=640, label="宽度", precision=0, interactive=False)
                 with gr.Row():
-                    num_frames = gr.Slider(33, 231, value=231, step=33, label="Num Frames")
-                    num_inference_steps = gr.Slider(1, 10, value=2, step=1, label="Steps per stage")
+                    num_frames = gr.Slider(33, 231, value=231, step=33, label="帧数")
+                    num_inference_steps = gr.Slider(1, 10, value=2, step=1, label="每阶段步数")
                 with gr.Row():
-                    seed = gr.Number(value=42, label="Seed", precision=0)
-                    is_amplify_first_chunk = gr.Checkbox(label="Amplify First Chunk", value=True)
+                    seed = gr.Number(value=42, label="随机种子", precision=0)
+                    is_amplify_first_chunk = gr.Checkbox(label="增强首段", value=True)
 
-            generate_btn = gr.Button("🚀 Generate Video", variant="primary", size="lg")
+            generate_btn = gr.Button("🚀 开始生成", variant="primary", size="lg")
 
         with gr.Column(scale=1):
-            video_output = gr.Video(label="Generated Video", autoplay=True)
-            info_output = gr.Textbox(label="Info", interactive=False)
+            video_output = gr.Video(label="生成的视频", autoplay=True)
+            info_output = gr.Textbox(label="生成信息", interactive=False)
 
     mode.change(fn=update_conditional_visibility, inputs=[mode], outputs=[image_input, video_input])
     generate_btn.click(
@@ -208,63 +260,11 @@ with gr.Blocks(title="Helios Video Generation") as demo:
         outputs=[video_output, info_output],
     )
 
-    gr.Examples(
-        examples=[
-            [
-                "Text-to-Video",
-                "A vibrant tropical fish swimming gracefully among colorful coral reefs in "
-                "a clear, turquoise ocean. The fish has bright blue and yellow scales with a "
-                "small, distinctive orange spot on its side, its fins moving fluidly. The coral "
-                "reefs are alive with a variety of marine life, including small schools of "
-                "colorful fish and sea turtles gliding by. The water is crystal clear, allowing "
-                "for a view of the sandy ocean floor below. The reef itself is adorned with a mix "
-                "of hard and soft corals in shades of red, orange, and green. The photo captures "
-                "the fish from a slightly elevated angle, emphasizing its lively movements and the "
-                "vivid colors of its surroundings. A close-up shot with dynamic movement.",
-                None,
-                None,
-            ],
-            [
-                "Text-to-Video",
-                "An extreme close-up of an gray-haired man with a beard in his 60s, he is deep in "
-                "thought pondering the history of the universe as he sits at a cafe in Paris, his eyes "
-                "focus on people offscreen as they walk as he sits mostly motionless, he is dressed in "
-                "a wool coat suit coat with a button-down shirt , he wears a brown beret and glasses "
-                "and has a very professorial appearance, and the end he offers a subtle closed-mouth "
-                "smile as if he found the answer to the mystery of life, the lighting is very cinematic "
-                "with the golden light and the Parisian streets and city in the background, depth of "
-                "field, cinematic 35mm film.",
-                None,
-                None,
-            ],
-            [
-                "Text-to-Video",
-                "A drone camera circles around a beautiful historic church built on a rocky outcropping "
-                "along the Amalfi Coast, the view showcases historic and magnificent architectural "
-                "details and tiered pathways and patios, waves are seen crashing against the rocks "
-                "below as the view overlooks the horizon of the coastal waters and hilly landscapes "
-                "of the Amalfi Coast Italy, several distant people are seen walking and enjoying vistas "
-                "on patios of the dramatic ocean views, the warm glow of the afternoon sun creates a "
-                "magical and romantic feeling to the scene, the view is stunning captured with beautiful photography.",
-                None,
-                None,
-            ],
-            [
-                "Image-to-Video",
-                "A towering emerald wave surges forward, its crest curling with raw power and energy. Sunlight glints off the translucent water, illuminating the intricate textures and deep green hues within the wave’s body. A thick spray erupts from the breaking crest, casting a misty veil that dances above the churning surface. As the perspective widens, the immense scale of the wave becomes apparent, revealing the restless expanse of the ocean stretching beyond. The scene captures the ocean’s untamed beauty and relentless force, with every droplet and ripple shimmering in the light. The dynamic motion and vivid colors evoke both awe and respect for nature’s might.",
-                "https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/diffusers/helios/wave.jpg",
-                None,
-            ],
-            [
-                "Video-to-Video",
-                "A bright yellow Lamborghini Huracn Tecnica speeds along a curving mountain road, surrounded by lush green trees under a partly cloudy sky. The car's sleek design and vibrant color stand out against the natural backdrop, emphasizing its dynamic movement. The road curves gently, with a guardrail visible on one side, adding depth to the scene. The motion blur captures the sense of speed and energy, creating a thrilling and exhilarating atmosphere. A front-facing shot from a slightly elevated angle, highlighting the car's aggressive stance and the surrounding greenery.",
-                None,
-                "https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/diffusers/helios/car.mp4",
-            ],
-        ],
-        inputs=[mode, prompt, image_input, video_input],
-        label="Example Prompts",
-    )
-
 if __name__ == "__main__":
-    demo.launch(share=True, css=CSS, theme=gr.themes.Soft())
+    demo.launch(
+        server_name="0.0.0.0",
+        server_port=7860,
+        share=False,
+        css=CSS,
+        theme=gr.themes.Soft()
+    )

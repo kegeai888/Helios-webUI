@@ -4,8 +4,8 @@
 #     --cp_backend "ulysses" \   #  ["ring", "ulysses", "unified", "ulysses_anything"]
 
 CUDA_VISIBLE_DEVICES=0 python infer_helios.py \
-    --base_model_path "BestWishYsh/Helios-Base" \
-    --transformer_path "BestWishYsh/Helios-Base" \
+    --base_model_path "./models/Helios-Base" \
+    --transformer_path "./models/Helios-Base" \
     --sample_type "i2v" \
     --num_frames 99 \
     --fps 24 \
