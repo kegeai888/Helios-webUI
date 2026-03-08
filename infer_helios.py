@@ -56,8 +56,6 @@ def parse_args():
     )
     parser.add_argument("--output_folder", type=str, default="./output_helios")
     parser.add_argument("--enable_compile", action="store_true")
-    parser.add_argument("--low_vram_mode", action="store_true")
-    parser.add_argument("--enable_parallelism", action="store_true")
 
     # === Generation parameters ===
     # environment
@@ -141,6 +139,7 @@ def parse_args():
 
     # === Context parallelism ===
     # Please refer to https://huggingface.co/docs/diffusers/v0.37.0/en/training/distributed_inference#context-parallelism
+    parser.add_argument("--enable_parallelism", action="store_true")
     parser.add_argument(
         "--cp_backend",
         type=str,
@@ -149,14 +148,31 @@ def parse_args():
         help="Context parallel backend to use.",
     )
 
+    # === Group-Offloading ===
+    # Please refer to https://huggingface.co/docs/diffusers/v0.37.0/en/optimization/memory#group-offloading
+    parser.add_argument("--enable_low_vram_mode", action="store_true")
+    parser.add_argument(
+        "--group_offloading_type",
+        type=str,
+        choices=["leaf_level", "block_level"],
+        default="leaf_level",
+        help="Specifies the granularity for group CPU offloading. Choose between 'leaf_level' (individual modules) or 'block_level' (entire blocks).",
+    )
+    parser.add_argument(
+        "--num_blocks_per_group",
+        type=str,
+        default="4",
+        help="The number of blocks to bundle together in each offloading group. Only relevant when using block-level offloading.",
+    )
+
     return parser.parse_args()
 
 
 def main():
     args = parse_args()
 
-    assert not (args.low_vram_mode and args.enable_compile), (
-        "low_vram_mode and enable_compile cannot be used together."
+    assert not (args.enable_low_vram_mode and args.enable_compile), (
+        "enable_low_vram_mode and enable_compile cannot be used together."
     )
 
     if args.weight_dtype == "fp32":
@@ -177,7 +193,7 @@ def main():
         device = torch.device("cuda", rank % torch.cuda.device_count())
         world_size = dist.get_world_size()
         torch.cuda.set_device(device)
-        assert world_size == 1 or not args.low_vram_mode, "low_vram_mode is only for single GPU."
+        assert world_size == 1 or not args.enable_low_vram_mode, "enable_low_vram_mode is only for single GPU."
     else:
         rank = 0
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -270,13 +286,12 @@ def main():
         pipe.vae.compile(mode="max-autotune-no-cudagraphs", dynamic=False)
         pipe.transformer.compile(mode="max-autotune-no-cudagraphs", dynamic=False)
 
-    if args.low_vram_mode:
+    if args.enable_low_vram_mode:
         pipe.enable_group_offload(
             onload_device=torch.device("cuda"),
             offload_device=torch.device("cpu"),
-            # offload_type="leaf_level",
-            offload_type="block_level",
-            num_blocks_per_group=1,
+            offload_type=args.group_offloading_type,
+            num_blocks_per_group=args.num_blocks_per_group if args.group_offloading_type == "block_level" else None,
             use_stream=True,
             record_stream=True,
         )

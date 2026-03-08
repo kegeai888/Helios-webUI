@@ -58,6 +58,7 @@ or you can click <a href="https://github.com/PKU-YuanGroup/Helios-Page/blob/main
 
 ## 📣 Latest News!!
 
+* `[2026.03.08]` 👋 Helios now fully supports [Group Offloading](#-group-offloading-to-save-vram) and [Context Parallelism](#-context-parallelism-on-multiple-gpus)! These features significantly optimize VRAM (**only ~6GB**) usage and enable inference across multiple GPUs with *Ulysses Attention*, *Ring Attention*, *Unified Attention*, and *Ulysses Anything Attention*.
 * `[2026.03.06]` 🚀 [Cache-DiT](https://github.com/vipshop/cache-dit/pull/834) now supports Helios, it offers Fully Cache Acceleration and Parallelism support for Helios! Special thanks to the Cache-DiT Team for their amazing work.
 * `[2026.03.06]` 🚀 We fix the Parallel Inference logits for Helios, and provide an example [here](#-parallel-inference-on-multiple-gpus). Thanks [Cache-DiT Team](https://github.com/vipshop/cache-dit/pull/836). 
 * `[2026.03.06]` 👋 We official release the [Gradio Demo](https://huggingface.co/spaces/BestWishYsh/Helios-14B-RealTime), welcome to try it.
@@ -183,8 +184,36 @@ Before trying your own inputs, we highly recommend going through the sanity chec
 | **T2V** | <video src="https://github.com/user-attachments/assets/14e10753-0366-4790-ad8f-7b66d821ed11" controls width="240"></video> | <video src="https://github.com/user-attachments/assets/c1778691-a80b-428c-8094-88bb1dd1d52b" controls width="240"></video> | <video src="https://github.com/user-attachments/assets/4ca28c79-9dfa-49de-9c3a-f4c7b6c766cd" controls width="240"></video> |
 | **V2V** | <video src="https://github.com/user-attachments/assets/420cb572-85c2-42d8-98d7-37b0bc24c844" controls width="240"></video> | <video src="https://github.com/user-attachments/assets/7d703fa6-dc1a-4138-a897-e58cfd9236d6" controls width="240"></video> | <video src="https://github.com/user-attachments/assets/45329c55-1a25-459c-bbf0-4e584ec5b23d" controls width="240"></video> |
 
+
+### ✨ Group Offloading to Save VRAM
+
+Helios supports group offloading to significantly reduce VRAM consumption, allowing you to run on GPU with limited memory footprint. For more details on the underlying mechanics, please refer to the [documentation](https://huggingface.co/docs/diffusers/main/en/optimization/memory#group-offloading).
+
+The Helios model below requires `~6GB of VRAM`.
+
+<details>
+  <summary>Click to expand the code</summary>
+
+  ```bash
+  CUDA_VISIBLE_DEVICES=0 python infer_helios.py \
+      --base_model_path "BestWishYsh/Helios-Distilled" \
+      --transformer_path "BestWishYsh/Helios-Distilled" \
+      --sample_type "t2v" \
+      --prompt "A vibrant tropical fish swimming gracefully among colorful coral reefs in a clear, turquoise ocean. The fish has bright blue and yellow scales with a small, distinctive orange spot on its side, its fins moving fluidly. The coral reefs are alive with a variety of marine life, including small schools of colorful fish and sea turtles gliding by. The water is crystal clear, allowing for a view of the sandy ocean floor below. The reef itself is adorned with a mix of hard and soft corals in shades of red, orange, and green. The photo captures the fish from a slightly elevated angle, emphasizing its lively movements and the vivid colors of its surroundings. A close-up shot with dynamic movement." \
+      --num_frames 240 \
+      --guidance_scale 1.0 \
+      --is_enable_stage2 \
+      --pyramid_num_inference_steps_list 2 2 2 \
+      --is_amplify_first_chunk \
+      --output_folder "./output_helios/helios-distilled" \
+      --enable_low_vram_mode \
+      --group_offloading_type "leaf_level"
+  ```
+  
+</details>
+
 ### ✨ Context Parallelism on Multiple GPUs
-Helios supports various Context Parallelism mechanisms, including Ulysses Attention, Ring Attention, Unified Attention, and Ulysses Anything Attention. For more details, please refer to the [documentation](https://huggingface.co/docs/diffusers/v0.37.0/en/training/distributed_inference#context-parallelism).
+Helios supports various Context Parallelism mechanisms, including `Ulysses Attention`, `Ring Attention`, `Unified Attention`, and `Ulysses Anything Attention`. For more details, please refer to the [documentation](https://huggingface.co/docs/diffusers/main/en/training/distributed_inference#context-parallelism).
 
 For example, let's take Helios-Base with 4 GPUs.
 
