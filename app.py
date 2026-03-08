@@ -122,6 +122,10 @@ def update_resolution(resolution_str):
     width, height = map(int, resolution_str.split('x'))
     return height, width
 
+def swap_dimensions(height, width):
+    """交换高度和宽度"""
+    return width, height, f"{height}x{width}"
+
 
 CSS = """
 /* 全局样式 - 适配桌面端浏览器 */
@@ -247,11 +251,12 @@ with gr.Blocks(title="Helios 视频生成") as demo:
                         "1920x1080",  # Full HD 1080p (16:9)
                     ],
                     value="640x384",
-                    label="分辨率 (宽×高)",
+                    label="分辨率预设 (宽×高)",
                 )
                 with gr.Row():
-                    height = gr.Number(value=384, label="高度", precision=0, visible=False)
-                    width = gr.Number(value=640, label="宽度", precision=0, visible=False)
+                    width = gr.Number(value=640, label="宽度", precision=0, minimum=64, maximum=1920)
+                    height = gr.Number(value=384, label="高度", precision=0, minimum=64, maximum=1920)
+                    swap_btn = gr.Button("🔄 交换", size="sm", scale=0)
                 with gr.Row():
                     num_frames = gr.Number(value=231, label="帧数", precision=0, minimum=33, maximum=231)
                     num_inference_steps = gr.Slider(1, 10, value=2, step=1, label="每阶段步数")
@@ -267,6 +272,7 @@ with gr.Blocks(title="Helios 视频生成") as demo:
 
     mode.change(fn=update_conditional_visibility, inputs=[mode], outputs=[image_input, video_input])
     resolution.change(fn=update_resolution, inputs=[resolution], outputs=[height, width])
+    swap_btn.click(fn=swap_dimensions, inputs=[height, width], outputs=[height, width, resolution])
     generate_btn.click(
         fn=generate_video,
         inputs=[
