@@ -21,7 +21,6 @@ import numpy as np
 import regex as re
 import torch
 import torch.nn.functional as F
-from accelerate.utils import broadcast
 from transformers import AutoTokenizer, UMT5EncoderModel
 
 from diffusers.callbacks import MultiPipelineCallbacks, PipelineCallback
@@ -480,22 +479,30 @@ class HeliosPipeline(DiffusionPipeline, HeliosLoraLoaderMixin):
         width,
         patch_size: tuple[int, ...] = (1, 2, 2),
         device: torch.device | None = None,
+        generator: torch.Generator | None = None,
     ):
+        # NOTE: A generator must be provided to ensure correct and reproducible results.
+        # Creating a default generator here is a fallback only — without a fixed seed,
+        # the output will be non-deterministic and may produce incorrect results in CP context.
+        if generator is None:
+            generator = torch.Generator(device=device)
+
         gamma = self.scheduler.config.gamma
         _, ph, pw = patch_size
         block_size = ph * pw
 
-        cov = (
-            torch.eye(block_size, device=device) * (1 + gamma)
-            - torch.ones(block_size, block_size, device=device) * gamma
-        )
+        cov = torch.eye(block_size, device=device) * (1 + gamma) - torch.ones(block_size, block_size, device=device) * gamma
         cov += torch.eye(block_size, device=device) * 1e-6
-        dist = torch.distributions.MultivariateNormal(torch.zeros(block_size, device=device), covariance_matrix=cov)
-        block_number = batch_size * channel * num_frames * (height // ph) * (width // pw)
+        cov = cov.float()   # Upcast to fp32 for numerical stability — cholesky is unreliable in fp16/bf16.
 
-        noise = dist.sample((block_number,))  # [block number, block_size]
+        L = torch.linalg.cholesky(cov)
+        block_number = batch_size * channel * num_frames * (height // ph) * (width // pw)
+        z = torch.randn(block_number, block_size, device=device, generator=generator)
+        noise = z @ L.T
+
         noise = noise.view(batch_size, channel, num_frames, height // ph, width // pw, ph, pw)
         noise = noise.permute(0, 1, 2, 3, 5, 4, 6).reshape(batch_size, channel, num_frames, height, width)
+
         return noise
 
     def stage1_sample(
@@ -696,9 +703,8 @@ class HeliosPipeline(DiffusionPipeline, HeliosLoraLoaderMixin):
                 beta = alpha * (1 - ori_sigma) / math.sqrt(gamma)
 
                 batch_size, channel, num_frames, height, width = latents.shape
-                noise = self.sample_block_noise(batch_size, channel, num_frames, height, width, patch_size, device)
+                noise = self.sample_block_noise(batch_size, channel, num_frames, height, width, patch_size, device, generator)
                 noise = noise.to(device=device, dtype=transformer_dtype)
-                noise = broadcast(noise, from_process=0)
                 latents = alpha * latents + beta * noise  # To fix the block artifact
 
                 if self.config.is_distilled:
