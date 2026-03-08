@@ -64,6 +64,10 @@ def generate_video(
     if not prompt:
         raise gr.Error("请提供提示词")
 
+    # 处理随机种子：-1表示随机生成
+    if seed == -1:
+        seed = torch.randint(0, 2**32 - 1, (1,)).item()
+
     generator = torch.Generator(device="cuda").manual_seed(int(seed))
 
     kwargs = {
@@ -99,7 +103,7 @@ def generate_video(
     output_path = output_dir / f"outputs_{timestamp}.mp4"
 
     export_to_video(output, str(output_path), fps=24)
-    info = f"生成耗时 {elapsed:.1f}秒 · {num_frames} 帧 · {height}×{width}"
+    info = f"生成耗时 {elapsed:.1f}秒 · {num_frames} 帧 · {height}×{width} · 种子:{seed}"
     return str(output_path), info
 
 # ---------------------------------------------------------------------------
@@ -252,7 +256,7 @@ with gr.Blocks(title="Helios 视频生成") as demo:
                     num_frames = gr.Number(value=231, label="帧数", precision=0, minimum=33, maximum=231)
                     num_inference_steps = gr.Slider(1, 10, value=2, step=1, label="每阶段步数")
                 with gr.Row():
-                    seed = gr.Number(value=42, label="随机种子", precision=0)
+                    seed = gr.Number(value=-1, label="随机种子（-1为随机）", precision=0)
                     is_amplify_first_chunk = gr.Checkbox(label="增强首段", value=True)
 
             generate_btn = gr.Button("🚀 开始生成", variant="primary", size="lg")
