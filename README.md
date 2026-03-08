@@ -16,6 +16,7 @@
 [![ModelScope](https://img.shields.io/badge/🤖-ModelScope-purple)](https://modelscope.cn/collections/BestWishYSH/Helios)
 [![GitHub](https://img.shields.io/badge/GitHub-black?logo=github)](https://github.com/PKU-YuanGroup/Helios)
 [![GitCode](https://img.shields.io/badge/GitCodes-blue?logo=gitcode)](https://gitcode.com/weixin_47617277/Helios)
+[![WebUI](https://img.shields.io/badge/WebUI-Helios--webUI-green?logo=github)](https://github.com/kegeai888/Helios-webUI)
 
 [![Ascend](https://img.shields.io/badge/Inference-Ascend--NPU-red)](https://www.hiascend.com/)
 [![Diffusers](https://img.shields.io/badge/Inference-Diffusers-blueviolet)](https://github.com/huggingface/diffusers/pull/13208)
