@@ -113,6 +113,11 @@ def update_conditional_visibility(mode):
     else:
         return gr.update(visible=False), gr.update(visible=False)
 
+def update_resolution(resolution_str):
+    """从分辨率字符串解析宽度和高度"""
+    width, height = map(int, resolution_str.split('x'))
+    return height, width
+
 
 CSS = """
 /* 全局样式 - 适配桌面端浏览器 */
@@ -226,11 +231,25 @@ with gr.Blocks(title="Helios 视频生成") as demo:
                 value="一条色彩鲜艳的热带鱼在清澈的海洋中优雅地游动，周围是五颜六色的珊瑚礁。",
             )
             with gr.Accordion("高级设置", open=False):
+                resolution = gr.Dropdown(
+                    choices=[
+                        "640x384",    # 默认 (5:3)
+                        "512x512",    # 正方形
+                        "640x360",    # 360p (16:9)
+                        "720x480",    # SD标清 (3:2)
+                        "768x768",    # 正方形高清
+                        "1024x576",   # 16:9宽屏
+                        "1280x720",   # HD 720p (16:9)
+                        "1920x1080",  # Full HD 1080p (16:9)
+                    ],
+                    value="640x384",
+                    label="分辨率 (宽×高)",
+                )
                 with gr.Row():
-                    height = gr.Number(value=384, label="高度", precision=0, interactive=False)
-                    width = gr.Number(value=640, label="宽度", precision=0, interactive=False)
+                    height = gr.Number(value=384, label="高度", precision=0, visible=False)
+                    width = gr.Number(value=640, label="宽度", precision=0, visible=False)
                 with gr.Row():
-                    num_frames = gr.Slider(33, 231, value=231, step=33, label="帧数")
+                    num_frames = gr.Number(value=231, label="帧数", precision=0, minimum=33, maximum=231)
                     num_inference_steps = gr.Slider(1, 10, value=2, step=1, label="每阶段步数")
                 with gr.Row():
                     seed = gr.Number(value=42, label="随机种子", precision=0)
@@ -243,6 +262,7 @@ with gr.Blocks(title="Helios 视频生成") as demo:
             info_output = gr.Textbox(label="生成信息", interactive=False)
 
     mode.change(fn=update_conditional_visibility, inputs=[mode], outputs=[image_input, video_input])
+    resolution.change(fn=update_resolution, inputs=[resolution], outputs=[height, width])
     generate_btn.click(
         fn=generate_video,
         inputs=[
